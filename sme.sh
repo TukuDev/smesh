@@ -76,7 +76,7 @@ User=root
 Group=root
 Type=simple
 WorkingDirectory=/root/go-spacemesh-0.1.3/build/
-ExecStart=/root/go-spacemesh-0.1.3/build/go-spacemesh --grpc-server --randcon 0 --json-server --tcp-port 7152 --config tnff2.toml -d sm_data --coinbase 0x9974281b073b1EAB3d0318a7219C1d71f42912ec --start-mining --post-datadir post_data
+ExecStart=/root/go-spacemesh-0.1.3/build/go-spacemesh --grpc-server --json-server --tcp-port 7152 --config tnff2.toml -d sm_data --coinbase 0x9974281b073b1EAB3d0318a7219C1d71f42912ec --start-mining --post-datadir post_data
 
 Restart=always
 
