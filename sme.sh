@@ -49,7 +49,7 @@ source ~/.bashrc
 
 echo "golang installed" >> /root/tuku.log
 echo "golang installed, installing spacemesh"
-
+cd
 wget https://github.com/spacemeshos/go-spacemesh/archive/v0.1.3.tar.gz
 tar -xvf v0.1.3.tar.gz
 cd go-spacemesh-0.1.3
@@ -83,6 +83,9 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+ufw allow out 7152
+ufw allow in 7152
+ufw reload
 systemctl daemon-reload
 systemctl enable smesh.service
 systemctl start smesh.service
