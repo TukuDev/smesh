@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###################################
-## Tuku.dev smesh install script ##
+#  Tuku.dev smesh install script  #
 ###################################
 #       ...    *    .   _  .      #
 #    *  .  *     .   * (_)   *    #
@@ -18,54 +18,64 @@
 #      , -=-~' .-^- _             #
 #               `                 #
 ###################################
-# made for ubuntu 18.04 or similar#
+## meant to be run as root user ###
+##### on ubuntu 18.04.3 only ######
 ###################################
 
-# v1 - ffnet 002
+#ansible: systemctl stop smesh.service
 
-apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -yq
+#cleanup: delete post and spacemesh if found
+if [ -d /root/post ]; then
+rm -rf /root/post
+fi
 
-touch /root/tuku.log
+if [ -d /root/spacemesh ]; then
+rm -rf /root/spacemesh
+fi
 
-echo "installing golang"
+if [ -d /root/go-spacemesh-0.1.3 ]; then
+rm -rf /root/go-spacemesh-0.1.3
+fi
 
-wget https://dl.google.com/go/go1.14.linux-amd64.tar.gz
-tar -C /usr/local -xzf go1.14.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-cat >> /etc/profile<< EOF
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-EOF
+#install: get smeshbin and make dirs
+    if [ ! -d /root/smesh18-2 ]; then
+mkdir /root/smesh18-2
+wget http://tuku.blue/go-spacemesh-v0.1.8-linux -O /root/smesh18-2/go-spacemesh-v0.1.8-linux
+chmod +x /root/smesh18-2/go-spacemesh-v0.1.8-linux
 
-mkdir ~/go
-echo "GOPATH=$HOME/go" >> ~/.bashrc
-echo "export GOPATH" >> ~/.bashrc
-echo "PATH=\$PATH:\$GOPATH/bin # Add GOPATH/bin to PATH for scripting" >> ~/.bashrc
-source ~/.bashrc
+if [ ! -d /root/smesh18-2/sm_data ]; then
+mkdir /root/smesh18-2/sm_data
+fi
 
-echo "golang installed" >> /root/tuku.log
-echo "golang installed, installing spacemesh"
-cd
-wget https://github.com/spacemeshos/go-spacemesh/archive/v0.1.3.tar.gz
-tar -xvf v0.1.3.tar.gz
-cd go-spacemesh-0.1.3
-rm go.mod
-/usr/local/go/bin/go mod init github.com/spacemeshos/go-spacemesh
-go mod tidy
-make install
-make build
+if [ ! -d /root/smesh18-2/post_data ]; then
+mkdir /root/smesh18-2/post_data
+fi
 
+if [ ! -d /root/smeshlogs/ ]; then
+mkdir /root/smeshlogs/
+touch /root/smeshlogs/log_file
+touch /root/smeshlogs/err_file
+fi
 echo "spacemesh installed" >> /root/tuku.log
+    fi
+
 echo "spacemesh installed, configuring it now"
+wget http://ae7809a90692211ea8d4d0ea80dce922-597797094.us-east-1.elb.amazonaws.com/ -O /root/smesh18-2/smeshtest.toml
 
-cd /root/go-spacemesh-0.1.3/build
-wget http://a95220c1e575811eaa61112de75eb21f-1178855954.us-east-1.elb.amazonaws.com/ -O tnff2.toml
+if [ ! -f /etc/rsyslog.d/smeshlog.conf ]; then
+cat > /etc/rsyslog.d/smeshlog.conf << EOF
+if $programname == 'smeshlog' then /root/smeshlogs/smesh.log
+& stop
+EOF
+fi
 
-ls
+if [ ! -f /root/smeshlogs/smesh.log ]; then
+touch /root/smeshlogs/smesh.log
+fi
+
+if [ ! -f /lib/systemd/system/smesh.service ]; then
+rm /lib/systemd/system/smesh.service
+fi
 
 cat > /lib/systemd/system/smesh.service << EOF
 [Unit]
@@ -74,22 +84,24 @@ Description="smesh"
 [Service]
 User=root
 Group=root
-Type=simple
-WorkingDirectory=/root/go-spacemesh-0.1.3/build/
-ExecStart=/root/go-spacemesh-0.1.3/build/go-spacemesh --grpc-server --json-server --tcp-port 7152 --config tnff2.toml -d sm_data --coinbase 0x9974281b073b1EAB3d0318a7219C1d71f42912ec --start-mining --post-datadir post_data
-
+ExecStart=/root/smesh18-2/go-spacemesh-v0.1.8-linux --grpc-server --json-server --acquire-port=false --tcp-port 7152 --config /root/smesh18-2/smeshtest.toml -d /root/smesh18-2/sm_data --coinbase <your address here> --start-mining --post-datadir /root/smesh18-2/post_data
 Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=smeshlog
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
 ufw allow out 7152
 ufw allow in 7152
 ufw reload
+
 systemctl daemon-reload
+systemctl restart rsyslog
 systemctl enable smesh.service
 systemctl start smesh.service
 
 echo "spacemesh configured and started" >> /root/tuku.log
 echo "spacemesh configured, running it now"
-
