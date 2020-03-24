@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#public testnet v2
+
 ###################################
 #  Tuku.dev smesh install script  #
 ###################################
@@ -63,14 +65,13 @@ echo "spacemesh installed, configuring it now"
 wget http://ae7809a90692211ea8d4d0ea80dce922-597797094.us-east-1.elb.amazonaws.com/ -O /root/smesh18-2/smeshtest.toml
 
 if [ ! -f /etc/rsyslog.d/smeshlog.conf ]; then
-cat > /etc/rsyslog.d/smeshlog.conf << EOF
-if $programname == 'smeshlog' then /root/smeshlogs/smesh.log
+OUTFILE=/etc/rsyslog.d/smeshlog.conf
+(
+cat << 'EOF'
+if $programname == 'smeshlog' then /var/log/smesh.log
 & stop
 EOF
-fi
-
-if [ ! -f /root/smeshlogs/smesh.log ]; then
-touch /root/smeshlogs/smesh.log
+) > $OUTFILE
 fi
 
 if [ ! -f /lib/systemd/system/smesh.service ]; then
@@ -99,7 +100,7 @@ ufw allow in 7152
 ufw reload
 
 systemctl daemon-reload
-systemctl restart rsyslog
+sudo systemctl restart rsyslog
 systemctl enable smesh.service
 systemctl start smesh.service
 
